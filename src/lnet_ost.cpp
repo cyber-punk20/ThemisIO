@@ -118,11 +118,15 @@ void LnetOst::setAllocations(const LnetEntity *remote, const LnetMsg *msg) {
   }
   std::lock_guard<std::mutex> lock(allocLock);
   // double sum = 0;
+  printf("setAllocations:\n");
+  // printf("setAllocations: appAlloc addr:%u\n", &appAlloc);
   for (auto a : bws) {
     // appAlloc[std::get<0>(a)] = sum + std::get<1>(a);
     // sum += std::get<1>(a);
     appAlloc[std::get<0>(a)] = std::get<1>(a);
+    printf("appAlloc[%d]:%f\n",std::get<0>(a), std::get<1>(a));
   }
+
 }
 void LnetOst::onRemoteServerRequest(const LnetEntity *remote)
 {

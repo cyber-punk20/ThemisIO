@@ -64,7 +64,7 @@ void LnetMds::computeBwAllocationsGIFT(const size_t NUM_OSTS,
     set<int> s = set<int>(flat.begin(), flat.end());
     vector<int> apps(s.begin(), s.end());
     const int numApps = (int)apps.size();
-    // printf("numApps: %d\n", numApps);
+    printf("numApps: %d\n", numApps);
     // Row Order matrix
     const bool cOrd = false;
 

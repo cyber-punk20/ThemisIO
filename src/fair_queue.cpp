@@ -180,27 +180,36 @@ void FairQueue::Update_Job_Weight(std::unordered_map<int, double>& appAlloc, std
 			}
 			break;
 		case GIFT:
-			weight_sum = 0.1;
+			weight_sum = 1;
 			if(nJob != appAlloc.size()) {
 				for(i=0; i<nJob; i++)	{
 					// q_loc->weight = 1.0;
 					q_loc = all_queues[i];
-					q_loc->weight = weight_sum / (nJob - appAlloc.size());
-					q_loc->dT_Reload = TIME_PER_CYCLE_MICROSEC * (q_loc->weight) / weight_sum;
-					q_loc->T_Balance = q_loc->dT_Reload;	// charge the time balance for a new job
+					q_loc->weight = 0;
+					q_loc->dT_Reload = 0;
+					q_loc->T_Balance = 0;	// charge the time balance for a new job
 				}
 			}
-			weight_sum = 1 - weight_sum;
-			for(auto& a: appAlloc) {
-				int jobId = a.first;
-				double job_w = a.second;
-				if(indexed_queues.end() != indexed_queues.find(jobId)) {
-					q_loc = indexed_queues[jobId];
-					q_loc->weight = weight_sum * job_w;
-					q_loc->dT_Reload = TIME_PER_CYCLE_MICROSEC * (q_loc->weight) / weight_sum;
-					q_loc->T_Balance = q_loc->dT_Reload;
+			// printf("Update: appAlloc addr:%u\n", &appAlloc);
+			// if(!appAlloc.empty()) {
+			// 	printf("Update Job Weight, appAlloc is not empty\n");
+			// }
+			printf("Update Job Weight:\n");
+			{
+				std::lock_guard<std::mutex> lock(allocLock);
+				for(auto& a: appAlloc) {
+					printf("appAlloc[%d]:%f\n",a.first, a.second);
+					int jobId = a.first;
+					double job_w = a.second;
+					if(indexed_queues.end() != indexed_queues.find(jobId)) {
+						q_loc = indexed_queues[jobId];
+						q_loc->weight = weight_sum * job_w;
+						q_loc->dT_Reload = TIME_PER_CYCLE_MICROSEC * (q_loc->weight) / weight_sum;
+						q_loc->T_Balance = q_loc->dT_Reload;
+					}
 				}
 			}
+
 			break;
 		case JOB_FAIR:	// each slurm job has weight 1.  
 		case USER_FAIR:
@@ -459,7 +468,7 @@ void FairQueue::putMessage_TimeSharing(const IO_CMD_MSG *msg, std::unordered_map
 		sprintf(inf.name, "%d", job_id);
 		ActiveRequest rq = {._info = inf, ._t = Write};
 		activeReqs[rq]++;
-		// printf("put ActiveRequest %d\n", job_id);
+		printf("put ActiveRequest %d\n", job_id);
 	}
 
 //	printf("DBG> Put jobid %d OP %x\n", q->job_id, msg->op & 0xFF);

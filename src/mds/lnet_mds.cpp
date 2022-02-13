@@ -3,7 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <set>
-
+#include <unordered_map>
+#include <tuple>
 #include "lnet.h"
 #include "mds.h"
 #include "ClpSimplex.hpp"
@@ -217,16 +218,32 @@ void LnetMds::bcastAllocsToOsts(const MapOstToAppAllocs_t &allocs)
   size_t idx = 0;
   for (auto a : allocs) {
     std::cerr << "OST Allocs: " << idx << std::endl;
-    size_t sz = a.size();
+    
+    std::cerr << "\t Allocs: ";
+    std::unordered_map<int, double> apps;
+    for (auto i : a) {
+      AppAlloc_t d = i;
+      apps[std::get<0>(d)] += std::get<1>(d);
+    }
+    std::vector<AppAlloc_t> newFormedAlloc;
+    for(auto app: apps) {
+      newFormedAlloc.push_back(std::make_tuple(app.first, app.second));
+    }
+    size_t sz = newFormedAlloc.size();
     LnetMsg msg(Allocs, sizeof (sz) + (sizeof(int) + sizeof(double)) * sz);
     msg.pack(&sz);
-    std::cerr << "\t Allocs: ";
-    for (auto i : a) {
+    for(auto i: newFormedAlloc) {
       AppAlloc_t d = i;
       std::cerr << std::get<0>(d) << " -> " << std::get<1>(d) << "; ";
       msg.pack(&std::get<0>(d));
       msg.pack(&std::get<1>(d));
     }
+    // for (auto i : a) {
+    //   AppAlloc_t d = i;
+    //   std::cerr << std::get<0>(d) << " -> " << std::get<1>(d) << "; ";
+    //   msg.pack(&std::get<0>(d));
+    //   msg.pack(&std::get<1>(d));
+    // }
     std::cerr << std::endl;
     this->sendMsgToOst(&msg, idx);
     idx++;

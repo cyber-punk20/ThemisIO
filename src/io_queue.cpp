@@ -828,13 +828,17 @@ void fairQueueWorker_TimeSharing(int thread_id, std::unordered_map<ActiveRequest
 			fair_queue.housekeeping();
 			next_housekeeping_time = now + FAIRQUEUE_HOUSEKEEPING_FREQ_MICROS;
 		}
-
+		// if(mpi_rank == 0 && thread_id == 8) {
+		// 	printf("before _mm_pause with nActiveJob:%d\n", nActiveJob);
+		// }
 		// ERR busy loop on unsynchronized variable
 		if (nActiveJob == 0){
 			_mm_pause();
 			continue;
 		}
-
+		if(mpi_rank == 0 && thread_id == 8) {
+			printf("after _mm_pause with nActiveJob:%d\n", nActiveJob);
+		}
 		// move all incoming messages into fair queue object
 		for (CIO_QUEUE *queue = IO_Queue_List + IdxMin;
 				 queue <= IO_Queue_List + IdxMax;
@@ -856,13 +860,21 @@ void fairQueueWorker_TimeSharing(int thread_id, std::unordered_map<ActiveRequest
 				}
 			}
 		}
+		if(mpi_rank == 0 && thread_id == 8) {
+			printf("pending_count %d\n", pending_count);
+		}
 		// print_activeReqs(activeReqs, reqLock);
 		// If there is nothing to do, pause and try again
+		if(pending_count != 0) {
+			printf("DBG> FairQueue rank %d thread_id %d pending_count %d\n", mpi_rank, thread_id, pending_count);
+		}
+		
 		if (pending_count == 0) {
+			// printf("_mm_pause()\n");
 			_mm_pause();
 			continue;
 		}
-    
+		fair_queue.Update_Job_Weight(appAlloc, allocLock);
 		// select one message
 		if(Server_qp.fairness_mode == GIFT) {
 			// printf("Call fair_queue.getMessage_FromActiveJob\n");
@@ -886,8 +898,8 @@ void fairQueueWorker_TimeSharing(int thread_id, std::unordered_map<ActiveRequest
 			perror("pthread_mutex_lock");
 			exit(2);
 		}
-		
-		Process_One_IO_OP(&msg);// Do the real IO work!
+		printf("Process_One_IO_OP\n");
+		// Process_One_IO_OP(&msg);// Do the real IO work!
 		pending_count--;
 
 		// per-thread counter
@@ -910,7 +922,9 @@ void* Func_thread_IO_Worker_FairQueue(void *pParam)
 	std::mutex& reqLock = *(readParams->reqLock);
     std::unordered_map<int, double>& appAlloc = *(readParams->appAlloc);
 	std::mutex& allocLock = *(readParams->allocLock);
-	
+	// if(&appAlloc == readParams->appAlloc) {
+	// 	printf("hahaha true\n");
+	// }
 	CoreBinding.Bind_This_Thread();
 	idx_qp_server = thread_id % NUM_THREAD_IO_WORKER_INTER_SERVER;
 
