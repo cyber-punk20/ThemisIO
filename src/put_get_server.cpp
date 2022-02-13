@@ -313,6 +313,7 @@ static void* Func_thread_qp_server(void *pParam)
 static void* Func_Setup_Connection_To_Mds(void* pParam) {
 	SERVER_QUEUEPAIR *pServer_qp;
 	pServer_qp = ((OSTThreadParams*)pParam)->pServerQP;
+	CoreBinding.Bind_This_Thread();
 	std::unordered_map<ActiveRequest, int, hash_activeReq>* activeReqs = ((OSTThreadParams*)pParam)->activeReqs;
 	std::mutex* reqLock = ((OSTThreadParams*)pParam)->reqLock;
 	std::unordered_map<int, double>* appAlloc = ((OSTThreadParams*)pParam)->appAlloc;
